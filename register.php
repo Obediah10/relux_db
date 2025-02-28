@@ -1,8 +1,11 @@
 <?php
  $pagetitle = "Sign Up";
  include_once "Assets/header.php";
+ include_once "Assets/db_connect.php";
 
 //  Initializing Variables Values
+$msg = "Registration";
+$filename = $lastname = $email = $tel="";
 $emailError = $passwordError = $phoneError =  "";
 
 
@@ -21,10 +24,10 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST'){
 
   // User Image Validation
   $filesize = 3 * 1024 * 1024;
-  if(file['type'] == 'image/jpeg' || $file['type'] == 'image/png' || $file['type'] == 'image/jpg') {
+  if($file['type'] == 'image/jpeg' || $file['type'] == 'image/png' || $file['type'] == 'image/jpg') {
     if($file['size'] <= $filesize) {
       $filename = uniqid('user_image_') . "." . pathinfo($file['name'], PATHINFO_EXTENSION);
-      $fileLocation = "user_pictures/" .$filename;
+      $fileLocation = "users_pictures/" .$filename;
       move_uploaded_file($file['tmp_name'], $fileLocation);
       echo "Upload Successfully";
     } else {
@@ -35,7 +38,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST'){
   }
 
   //  Validating Email Address
-  if(!filter_var($file['email'], FILTER_VALIDATE_EMAIL)) {
+  if(!filter_var($email, FILTER_VALIDATE_EMAIL)) {
     $emailError = 'Email address not valid';
   }
 
@@ -51,10 +54,27 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST'){
   }
 
   //  Validating Phone Number
-  if(!preg_match ('/^0[789][01]\d{8}$|\^+234[789][01]\d{8}$/', $phone)) {
+  if(!preg_match ('/^0[789][01]\d{8}$|\^+234[789][01]\d{8}$/', $tel)) {
     $phoneError = "Invalid Phone Number";
   }
+ 
+  // Database Population
+  if($emailError == "" && $phoneError == "" && $passwordError == "") {
+    $verification_token = bin2hex(random_bytes(32));
+    $query = "INSERT INTO `users`(firstname, lastname, email, password, phone_number, gender, user_level, user_image, verification_code) VALUES (?,?,?,?,?,?,?,?,?)";
+    $stmt = $conn->prepare($query);
+    $stmt->bind_param("sssssssss", $firstname, $lastname, $email, $hashpassword, $tel, $gender, $role, $fileLocation, $verification_token);
+    if($stmt->execute()) {
+     move_uploaded_file($file['tmp_name'], $fileLocation);
+     $firstname = $lastname = $email = $tel = "";
+     $msg ="<span class='text-succes'> Registration Successful </span>";
+    } else{
+      $msg= "<span class='text-danger'>Registration Failed </span>";
+    }
 
+    }else {
+      $msg= "<span class='text-danger'>Registration Failed </span>";
+    }
 }
 
 ?>
@@ -71,8 +91,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST'){
                 style="border-top-left-radius: .25rem; border-bottom-left-radius: .25rem;" />
             </div>
             <div class="col-xl-6">
+             <form action="" method="post" enctype="multipart/form-data">
               <div class="card-body p-md-5 text-black">
-                <h3 class="mb-5 text-uppercase"> Registration form</h3>
+                <h3 class="mb-5 text-uppercase"> <?= $msg ?> </h3>
 
                  <!-- User Image Preview -->
                   <div class="form-outline-mb-4">
@@ -86,7 +107,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST'){
                 <div class="row">
                   <div class="col-md-6 mb-4">
                     <div data-mdb-input-init class="form-outline">
-                      <input type="text" id="form3Example1m" class="form-control form-control-lg" name="firstname" required/>
+                      <input type="text" id="form3Example1m" class="form-control form-control-lg" name="firstname"  required/>
                       <label class="form-label" for="form3Example1m">First name</label>
                     </div>
                   </div>
@@ -101,7 +122,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST'){
                   <!-- E-mail Capturing -->
                   <div data-mdb-input-init class="form-outline mb-4">
                   <input type="email" id="form3Example9" class="form-control form-control-lg"
-                  name="ëmail" />
+                  name="email"  />
                   <label class="form-label" for="form3Example9">Email ID</label>
                 </div>
 
@@ -123,7 +144,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST'){
 
                   <!--Phone Number Capturing -->
                 <div data-mdb-input-init class="form-outline mb-4">
-                  <input type="tel" id="form3Example9" class="form-control form-control-lg" name="tel" required/>
+                  <input type="tel" id="form3Example9" class="form-control form-control-lg" name="tel"  required/>
                   <label class="form-label" for="form3Example9">Phone Number</label>
                 </div>
 
@@ -182,6 +203,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST'){
                 </div>
 
               </div>
+              </form>
             </div>
           </div>
         </div>
